@@ -21,17 +21,13 @@
     <canvas id="gpuCanvas"></canvas>
     <script type="module">
         async function initWebGPU() {
-            // Check if WebGPU is supported
             if (!navigator.gpu) {
                 console.error('WebGPU is not supported by this browser.');
                 return;
             }
 
-            // Get a GPU device
             const adapter = await navigator.gpu.requestAdapter();
             const device = await adapter.requestDevice();
-
-            // Get the canvas and configure it with WebGPU
             const canvas = document.getElementById('gpuCanvas');
             const context = canvas.getContext('webgpu');
             const canvasFormat = navigator.gpu.getPreferredCanvasFormat();
@@ -42,42 +38,41 @@
                 alphaMode: 'opaque'
             });
 
-            // Create a basic render pass
-            const renderPassDescriptor = {
-                colorAttachments: [
-                    {
-                        view: context.getCurrentTexture().createView(),
-                        loadOp: 'clear',
-                        clearValue: {r: 0.0, g: 0.0, b: 0.0, a: 1.0},
-                        storeOp: 'store'
-                    }
-                ]
-            };
+            let time = 0.0;
 
-            // Create a command encoder and render pass encoder
-            const commandEncoder = device.createCommandEncoder();
-            const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-            passEncoder.endPass();
-
-            // Submit the commands to the GPU
-            const commandBuffer = commandEncoder.finish();
-            device.queue.submit([commandBuffer]);
-
-            // Simple animation loop to keep rendering
             function frame() {
-                renderPassDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
+                time += 0.01;
+                const color = {
+                    r: (Math.sin(time) + 1) / 2,
+                    g: (Math.cos(time) + 1) / 2,
+                    b: (Math.sin(time + Math.PI / 2) + 1) / 2,
+                    a: 1.0
+                };
+
+                const renderPassDescriptor = {
+                    colorAttachments: [
+                        {
+                            view: context.getCurrentTexture().createView(),
+                            loadOp: 'clear',
+                            clearValue: color,
+                            storeOp: 'store'
+                        }
+                    ]
+                };
+
                 const commandEncoder = device.createCommandEncoder();
                 const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
                 passEncoder.endPass();
+
                 const commandBuffer = commandEncoder.finish();
                 device.queue.submit([commandBuffer]);
 
                 requestAnimationFrame(frame);
             }
+
             requestAnimationFrame(frame);
         }
 
-        // Initialize WebGPU when the page loads
         window.addEventListener('load', initWebGPU);
     </script>
 </body>
